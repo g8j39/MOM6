@@ -3506,15 +3506,23 @@ subroutine smooth_x9_h(CS, G, field_h, zero_land)
 
   zero_land_val = .true. ; if (present(zero_land)) zero_land_val = zero_land
 
-  fh_prev(:,:) = field_h(:,:)
+  ! Pre-mask input copy over the 2-point stencil halo, guarding dry points
+  ! against uninitialized or NaN values.
+  do j=js-2,je+2 ; do i=is-2,ie+2
+    if (G%mask2dT(i,j) > 0.0) then
+      fh_prev(i,j) = field_h(i,j) * G%mask2dT(i,j)
+    else
+      fh_prev(i,j) = 0.0
+    endif
+  enddo ; enddo
   ! apply smoothing on field_h using rotationally symmetric expressions.
   if (zero_land_val) then
     do j=js,je ; do i=is,ie ; if (G%mask2dT(i,j) > 0.0) then
-        field_h(i,j) = Iwts_zl * sum_5x5(fh_prev(i-2:i+2,j-2:j+2) * G%mask2dT(i-2:i+2,j-2:j+2))
+      field_h(i,j) = Iwts_zl * sum_5x5(fh_prev(i-2:i+2,j-2:j+2))
     endif ; enddo ; enddo
   else
     do j=js,je ; do i=is,ie ; if (G%mask2dT(i,j) > 0.0) then
-        field_h(i,j) = CS%Iwts(i,j) * sum_5x5(fh_prev(i-2:i+2,j-2:j+2) * G%mask2dT(i-2:i+2,j-2:j+2))
+      field_h(i,j) = CS%Iwts(i,j) * sum_5x5(fh_prev(i-2:i+2,j-2:j+2))
     endif ; enddo ; enddo
   endif
 
@@ -3547,29 +3555,41 @@ subroutine smooth_x9_uv(CS, G, field_u, field_v, zero_land)
 
   zero_land_val = .true. ; if (present(zero_land)) zero_land_val = zero_land
 
-  fu_prev(:,:) = field_u(:,:)
+  ! Pre-mask input copies over the 2-point stencil halo, guarding dry points
+  ! against uninitialized or NaN values.
+  do j=js-2,je+2 ; do I=Isq-2,Ieq+2
+    if (G%mask2dCu(I,j) > 0.0) then
+      fu_prev(I,j) = field_u(I,j) * G%mask2dCu(I,j)
+    else
+      fu_prev(I,j) = 0.0
+    endif
+  enddo ; enddo
   ! apply smoothing on field_u using the original non-rotationally symmetric expressions.
   if (zero_land_val) then
     do j=js,je ; do I=Isq,Ieq ; if (G%mask2dCu(I,j) > 0.0) then
-      field_u(I,j) = Iwts_zl * sum_5x5(fu_prev(I-2:I+2,j-2:j+2) * G%mask2dCu(I-2:I+2,j-2:j+2))
+      field_u(I,j) = Iwts_zl * sum_5x5(fu_prev(I-2:I+2,j-2:j+2))
     endif ; enddo ; enddo
   else
     do j=js,je ; do I=Isq,Ieq ; if (G%mask2dCu(I,j) > 0.0) then
-      field_u(I,j) = CS%Iwts_u(I,j) * &
-                     sum_5x5(fu_prev(I-2:I+2,j-2:j+2) * G%mask2dCu(I-2:I+2,j-2:j+2))
+      field_u(I,j) = CS%Iwts_u(I,j) * sum_5x5(fu_prev(I-2:I+2,j-2:j+2))
     endif ; enddo ; enddo
   endif
 
-  fv_prev(:,:) = field_v(:,:)
+  do J=Jsq-2,Jeq+2 ; do i=is-2,ie+2
+    if (G%mask2dCv(i,J) > 0.0) then
+      fv_prev(i,J) = field_v(i,J) * G%mask2dCv(i,J)
+    else
+      fv_prev(i,J) = 0.0
+    endif
+  enddo ; enddo
   ! apply smoothing on field_v using the original non-rotationally symmetric expressions.
   if (zero_land_val) then
     do J=Jsq,Jeq ; do i=is,ie ; if (G%mask2dCv(i,J) > 0.0) then
-      field_v(i,J) = Iwts_zl * sum_5x5(fv_prev(i-2:i+2,J-2:J+2) * G%mask2dCv(i-2:i+2,J-2:J+2))
+      field_v(i,J) = Iwts_zl * sum_5x5(fv_prev(i-2:i+2,J-2:J+2))
     endif ; enddo ; enddo
   else
     do J=Jsq,Jeq ; do i=is,ie ; if (G%mask2dCv(i,J) > 0.0) then
-      field_v(i,J) = CS%Iwts_v(i,J) * &
-                     sum_5x5(fv_prev(i-2:i+2,J-2:J+2) * G%mask2dCv(i-2:i+2,J-2:J+2))
+      field_v(i,J) = CS%Iwts_v(i,J) * sum_5x5(fv_prev(i-2:i+2,J-2:J+2))
     endif ; enddo ; enddo
   endif
 
